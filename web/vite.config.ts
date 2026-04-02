@@ -1,9 +1,12 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import tailwindcss from '@tailwindcss/vite';
+import path from 'path';
 
 export default defineConfig({
   plugins: [
+    tailwindcss(),
     react(),
     VitePWA({
       registerType: 'autoUpdate',
@@ -55,8 +58,25 @@ export default defineConfig({
       },
     },
   },
+  resolve: {
+    alias: { '@': path.resolve(__dirname, './src') },
+  },
   build: {
     outDir: 'dist',
     sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react':    ['react', 'react-dom', 'react-router-dom'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-charts':   ['recharts'],
+          'vendor-forms':    ['react-hook-form', 'zod', 'signature_pad'],
+          'vendor-motion':   ['framer-motion'],
+          'vendor-icons':    ['lucide-react'],
+          'vendor-map':      ['leaflet', 'react-leaflet'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
   },
 });
