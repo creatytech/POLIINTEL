@@ -1,0 +1,13 @@
+{
+  "name": "poliintel",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @poliintel/web dev",
+    "build": "pnpm --filter @poliintel/web build",
+    "typecheck": "pnpm --filter @poliintel/web typecheck"
+  },
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=9"
+  }
+}

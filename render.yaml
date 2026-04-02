@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: poliintel-ml-engine
+    runtime: docker
+    dockerfilePath: ./ml_engine/Dockerfile
+    plan: starter
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+    healthCheckPath: /health
+    autoDeploy: true
