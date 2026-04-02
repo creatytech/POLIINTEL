@@ -3,13 +3,20 @@ services:
     name: poliintel-ml-engine
     runtime: docker
     dockerfilePath: ./ml_engine/Dockerfile
+    rootDir: .
+    branch: main
     plan: starter
+    region: oregon
     envVars:
       - key: DATABASE_URL
-        sync: false
+        sync: false          # postgresql://postgres.gzfrwlowlmidzxryfuod:Polii2026%40@aws-1-us-east-1.pooler.supabase.com:6543/postgres
       - key: SUPABASE_URL
-        sync: false
+        value: https://gzfrwlowlmidzxryfuod.supabase.co
       - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
+        sync: false          # pegar SERVICE_ROLE KEY de Supabase → Settings → API
+      - key: ALLOWED_ORIGINS
+        value: https://poliintel.pages.dev,https://poliintel.com
+      - key: PORT
+        value: "8000"
     healthCheckPath: /health
     autoDeploy: true
