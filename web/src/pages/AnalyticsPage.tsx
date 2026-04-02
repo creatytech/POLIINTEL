@@ -45,18 +45,25 @@ export default function AnalyticsPage() {
   });
 
   // Group responses by day for chart
-  const trendData = (responseData ?? []).reduce<Record<string, { date: string; count: number; quality: number }>>(
+  const trendData = (responseData ?? []).reduce<Record<string, { date: string; count: number; qualitySum: number; qualityCount: number }>>(
     (acc, r) => {
       const date = new Date(r.collected_at).toLocaleDateString('es-DO');
-      if (!acc[date]) acc[date] = { date, count: 0, quality: 0 };
+      if (!acc[date]) acc[date] = { date, count: 0, qualitySum: 0, qualityCount: 0 };
       acc[date].count++;
-      acc[date].quality = (acc[date].quality + (r.quality_score ?? 0)) / 2;
+      if (r.quality_score != null) {
+        acc[date].qualitySum += r.quality_score;
+        acc[date].qualityCount++;
+      }
       return acc;
     },
     {},
   );
 
-  const chartData = Object.values(trendData);
+  const chartData = Object.values(trendData).map(({ date, count, qualitySum, qualityCount }) => ({
+    date,
+    count,
+    quality: qualityCount > 0 ? Math.round((qualitySum / qualityCount) * 100) / 100 : 0,
+  }));
 
   return (
     <div className="space-y-6">

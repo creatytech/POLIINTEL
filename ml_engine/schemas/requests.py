@@ -51,13 +51,9 @@ class ClusteringRequest(BaseModel):
     min_samples: int = Field(default=3, ge=2, description="Minimum points per cluster")
     value_field: Optional[str] = Field(default=None, description="Field to aggregate in clusters")
 
-    def model_post_init(self, __context: object) -> None:
-        # Convert GeoPoint objects to dicts for the clustering function
-        object.__setattr__(
-            self,
-            "points",
-            [p.model_dump() for p in self.points],
-        )
+    @property
+    def points_as_dicts(self) -> list[dict]:
+        return [p.model_dump() for p in self.points]
 
 
 class AnomalyRequest(BaseModel):

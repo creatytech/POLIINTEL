@@ -34,7 +34,7 @@ async def analyze_sentiment_endpoint(request: SentimentRequest):
 async def cluster_responses_endpoint(request: ClusteringRequest):
     """Cluster survey responses by geospatial proximity."""
     result = dbscan_clustering(
-        points=request.points,
+        points=request.points_as_dicts,
         eps_km=request.eps_km,
         min_samples=request.min_samples,
         value_field=request.value_field,

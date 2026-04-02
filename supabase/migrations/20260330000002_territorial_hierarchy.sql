@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS colegios_electorales (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TYPE IF NOT EXISTS circunscripcion_tipo AS ENUM ('senatorial', 'diputados', 'municipal');
+CREATE TYPE circunscripcion_tipo AS ENUM ('senatorial', 'diputados', 'municipal');
 
 CREATE TABLE IF NOT EXISTS circunscripciones (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

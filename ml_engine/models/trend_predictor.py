@@ -83,10 +83,13 @@ def predict_vote_intention(
     probabilities = {c: round(v / total_responses, 4) for c, v in totals.items()}
     winner = max(probabilities, key=lambda k: probabilities[k])
 
-    # Confidence based on margin between top 2
+    # Confidence based on margin between top 2 candidates.
+    # A 3x multiplier normalizes margin (0–1) to a reasonable confidence range,
+    # capped at 0.95 and floored at 0.50 to reflect statistical uncertainty.
     sorted_probs = sorted(probabilities.values(), reverse=True)
     margin = sorted_probs[0] - (sorted_probs[1] if len(sorted_probs) > 1 else 0)
-    confidence = min(0.95, max(0.5, margin * 3))
+    CONFIDENCE_SCALE = 3.0
+    confidence = min(0.95, max(0.5, margin * CONFIDENCE_SCALE))
 
     return {
         "winner": winner,

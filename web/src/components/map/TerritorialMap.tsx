@@ -16,6 +16,9 @@ export default function TerritorialMap({
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Dependencies (center, zoom) are intentionally excluded: the map is initialized
+    // once on mount and Leaflet manages its own state thereafter. Reinitializing on
+    // prop changes would destroy and recreate the map, losing user interactions.
     if (!containerRef.current || mapRef.current) return;
 
     // Dynamically import Leaflet to avoid SSR issues
