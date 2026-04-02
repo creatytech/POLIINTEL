@@ -429,6 +429,132 @@ def import_centros():
     print(f"  ✓ {total} recintos en DB                ")
 
 
+# ─── Step 7: BARRIOS Y PARAJES ────────────────────────────────────────────────
+def import_barrios():
+    print("\n[7/8] Importando BARRIOS Y PARAJES (12,612 features — ~12 min)...")
+    # Cargar secciones para FK lookup
+    sec_list = rest_get_all("secciones", "codigo,id")
+    sec_by_code = {r["codigo"]: r["id"] for r in sec_list}
+
+    # Obtener códigos ya importados
+    existing = rest_get_all("barrios_parajes", "codigo")
+    existing_codes = {r["codigo"] for r in existing}
+
+    with open(GEODATA_DIR / "RD_BPARAJES.json") as f:
+        data = json.load(f)
+
+    features = [f for f in data["features"]
+                if str(f["properties"]["ENLACE"]).zfill(11) not in existing_codes]
+    total_src = len(data["features"])
+    print(f"  Faltan {len(features)} de {total_src} barrios/parajes...")
+
+    errors     = 0
+    failed_ids = []   # collect failed ENLACEs for second pass
+    BATCH      = 5
+
+    for i in range(0, len(features), BATCH):
+        chunk = features[i:i+BATCH]
+        rows  = []
+        for feat in chunk:
+            p      = feat["properties"]
+            enlace = str(p["ENLACE"]).zfill(11)
+            name   = (str(p.get("TOPO2") or p["TOPONIMIA"])).title()[:200]
+            geom   = reproject_geometry(feat["geometry"])
+            row    = {
+                "nombre":   name,
+                "codigo":   enlace,
+                "area_km2": round(float(p.get("BP_AREA_km", 0) or 0), 4),
+                "geom":     geom_ewkt(geom),
+            }
+            sv = sec_by_code.get(enlace[:8])
+            if sv:
+                row["seccion_id"] = sv
+            rows.append(row)
+
+        if rows:
+            _, err = rest_insert("barrios_parajes", rows)
+            if err:
+                errors += 1
+                # Queue individual codes for second pass (do not retry now)
+                for r in rows:
+                    failed_ids.append(r["codigo"])
+
+        done = min(i + BATCH, len(features))
+        if done % 500 == 0 or done == len(features):
+            print(f"  {done}/{len(features)} (err-batches:{errors})", flush=True)
+        else:
+            print(f"  {done}/{len(features)} (err-batches:{errors})", end="\r", flush=True)
+        time.sleep(0.05)
+
+    # ── Second pass: failed batches, one-by-one ──────────────────────────────
+    if failed_ids:
+        print(f"\n  Segunda pasada: {len(failed_ids)} registros fallidos...")
+        fail_codes = set(failed_ids)
+        # Reload already-in-DB after first pass
+        recheck = rest_get_all("barrios_parajes", "codigo")
+        already = {r["codigo"] for r in recheck}
+        fail_codes -= already
+
+        feat_by_code = {str(f["properties"]["ENLACE"]).zfill(11): f
+                        for f in data["features"]}
+        recovered = 0
+        for j, code in enumerate(fail_codes):
+            feat = feat_by_code.get(code)
+            if not feat:
+                continue
+            p    = feat["properties"]
+            geom = reproject_geometry(feat["geometry"])
+            row  = {
+                "nombre":   (str(p.get("TOPO2") or p["TOPONIMIA"])).title()[:200],
+                "codigo":   code,
+                "area_km2": round(float(p.get("BP_AREA_km", 0) or 0), 4),
+                "geom":     geom_ewkt(geom),
+            }
+            sv = sec_by_code.get(code[:8])
+            if sv:
+                row["seccion_id"] = sv
+            _, serr = rest_insert("barrios_parajes", [row])
+            if not serr:
+                recovered += 1
+            print(f"  2°pasada {j+1}/{len(fail_codes)}", end="\r", flush=True)
+            time.sleep(0.05)
+        print(f"\n  Recuperados: {recovered}/{len(fail_codes)}")
+
+    total = count_table("barrios_parajes")
+    print(f"  ✓ {total} barrios/parajes en DB                ")
+
+
+# ─── Step 8: RUP (Regiones Únicas de Planeamiento) → geodata_staging ─────────
+def import_rup():
+    print("\n[8/8] Importando RUP → geodata_staging (10 features)...")
+    with open(GEODATA_DIR / "RD_RUP.json") as f:
+        data = json.load(f)
+
+    rows = []
+    for feat in data["features"]:
+        p    = feat["properties"]
+        geom = reproject_geometry(feat["geometry"])
+        rows.append({
+            "source":       "RD_RUP",
+            "feature_type": "region_unica_planeamiento",
+            "properties": json.dumps({
+                "codmreg":   str(p.get("CODMREG", "")).zfill(2),
+                "codreg":    str(p.get("CODREG", "")).zfill(2),
+                "nombre":    str(p.get("TOPONIMIA", "")).title(),
+                "area_km2":  round(float(p.get("KM2", 0) or 0), 4),
+                "geom_ewkt": geom_ewkt(geom),
+            }),
+            # geom column left null — EWKT stored in properties
+        })
+
+    cnt, err = rest_insert("geodata_staging", rows)
+    if err:
+        print(f"  ✗ Error: {err}")
+    else:
+        total = count_table("geodata_staging")
+        print(f"  ✓ {total} features en geodata_staging (incluye 10 RUP)")
+
+
 # ─── Final validation ─────────────────────────────────────────────────────────
 def validate():
     print("\n=== Validación Final ===")
@@ -438,6 +564,7 @@ def validate():
         "municipios": 158,
         "distritos_municipales": 393,
         "secciones": 1596,
+        "barrios_parajes": 12612,
         "recintos_electorales": 1545,
     }
     all_ok = True
@@ -448,6 +575,9 @@ def validate():
         if not ok:
             all_ok = False
         print(f"  {sym} {table}: {cnt} (esperado ~{exp})")
+
+    rup = count_table("geodata_staging")
+    print(f"  ✓ geodata_staging (RUP): {rup}")
 
     if all_ok:
         print("\n✅ Toda la geodata importada correctamente.")
@@ -467,4 +597,6 @@ if __name__ == "__main__":
     import_distritos()
     import_secciones()
     import_centros()
+    import_barrios()
+    import_rup()
     validate()
