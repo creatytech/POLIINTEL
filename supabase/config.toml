@@ -1,4 +1,4 @@
-project_id = "fpkufahvkvxnnfujgcex"
+project_id = "gzfrwlowlmidzxryfuod"
 
 [api]
 enabled = true
@@ -25,12 +25,10 @@ pop3_port = 54326
 [storage]
 enabled = true
 
-[[storage.buckets]]
-name = "field-photos"
+[storage.buckets.field-photos]
 public = false
 
-[[storage.buckets]]
-name = "signatures"
+[storage.buckets.signatures]
 public = false
 
 [auth]

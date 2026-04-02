@@ -33,7 +33,8 @@ Este documento es la **fuente única de verdad** (SSOT) de la arquitectura compl
 | **Base de Datos** | Supabase (PostgreSQL + PostGIS + RLS) | `supabase/` |
 | **CI/CD** | GitHub Actions | `.github/workflows/ci.yml` |
 
-**Supabase URL**: `https://fpkufahvkvxnnfujgcex.supabase.co`
+**Supabase URL**: `https://gzfrwlowlmidzxryfuod.supabase.co`  
+**Pooler (IPv4)**: `aws-1-us-east-1.pooler.supabase.com:6543` (Transaction mode)
 
 ---
 
@@ -115,15 +116,15 @@ POLIINTEL/
 
 ### Frontend (`web/.env.local`)
 ```env
-VITE_SUPABASE_URL=https://fpkufahvkvxnnfujgcex.supabase.co
-VITE_SUPABASE_ANON_KEY=<anon_key>
+VITE_SUPABASE_URL=https://gzfrwlowlmidzxryfuod.supabase.co
+VITE_SUPABASE_ANON_KEY=<anon_key from .env.example>
 VITE_ML_ENGINE_URL=https://your-service.onrender.com
 ```
 
 ### ML Engine
 ```env
-DATABASE_URL=postgresql://postgres:<password>@db.fpkufahvkvxnnfujgcex.supabase.co:5432/postgres
-SUPABASE_URL=https://fpkufahvkvxnnfujgcex.supabase.co
+DATABASE_URL=postgresql://postgres.gzfrwlowlmidzxryfuod:<password>@aws-1-us-east-1.pooler.supabase.com:6543/postgres
+SUPABASE_URL=https://gzfrwlowlmidzxryfuod.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<service_role_key>
 ```
 
@@ -176,9 +177,17 @@ Mobile Collector
    - `SUPABASE_SERVICE_ROLE_KEY`
 
 ### Supabase
-1. Aplicar migraciones: `supabase db push` (o `supabase db reset` en local)
-2. Deployar Edge Functions: `supabase functions deploy`
+1. Aplicar migraciones desde entorno local con acceso a red:
+   ```bash
+   DB_PASSWORD='<password>' ./scripts/apply_migrations.sh
+   ```
+   O usando Supabase CLI (linked):
+   ```bash
+   supabase db push --db-url "postgresql://postgres.gzfrwlowlmidzxryfuod:<password>@aws-1-us-east-1.pooler.supabase.com:6543/postgres"
+   ```
+2. Deployar Edge Functions: `supabase functions deploy --project-ref gzfrwlowlmidzxryfuod`
 3. Configurar Storage buckets: `field-photos`, `signatures`
+4. (Opcional) Cargar geodata: `DATABASE_URL=<url> ./scripts/import_geodata.sh`
 
 ---
 

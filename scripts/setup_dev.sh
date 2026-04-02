@@ -45,7 +45,8 @@ if command -v supabase &>/dev/null; then
   supabase db reset || echo "  WARNING: Migration failed, check your Supabase setup"
 else
   echo "  Supabase CLI not found, skipping local DB setup"
-  echo "  Using remote Supabase project at https://fpkufahvkvxnnfujgcex.supabase.co"
+  echo "  Using remote Supabase project at https://gzfrwlowlmidzxryfuod.supabase.co"
+  echo "  Run: ./scripts/apply_migrations.sh (requires DB_PASSWORD env var)"
 fi
 
 # Install Python dependencies
